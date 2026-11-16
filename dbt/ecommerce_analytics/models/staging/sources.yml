@@ -1,0 +1,30 @@
+version: 2
+
+sources:
+  - name: ecommerce_raw
+    description: "Raw e-commerce data ingested from PostgreSQL into Snowflake Bronze."
+
+    database: ECOMMERCE_DB
+    schema: BRONZE
+
+    tables:
+      - name: customers
+        description: "Raw customer records."
+
+      - name: suppliers
+        description: "Raw supplier records."
+
+      - name: warehouses
+        description: "Raw warehouse records."
+
+      - name: products
+        description: "Raw product records."
+
+      - name: orders
+        description: "Raw customer orders."
+
+      - name: order_items
+        description: "Products belonging to customer orders."
+
+      - name: inventory
+        description: "Product inventory by warehouse."

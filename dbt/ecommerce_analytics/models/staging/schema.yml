@@ -1,0 +1,138 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: "Cleaned customer data from PostgreSQL."
+    columns:
+      - name: customer_id
+        description: "Unique customer identifier."
+        data_tests:
+          - unique
+          - not_null
+
+      - name: email
+        data_tests:
+          - not_null
+
+  - name: stg_suppliers
+    description: "Cleaned supplier data."
+    columns:
+      - name: supplier_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: stg_warehouses
+    description: "Cleaned warehouse data."
+    columns:
+      - name: warehouse_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: warehouse_code
+        data_tests:
+          - unique
+          - not_null
+
+  - name: stg_products
+    description: "Cleaned product catalog."
+    columns:
+      - name: product_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: sku
+        data_tests:
+          - unique
+          - not_null
+
+      - name: supplier_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_suppliers')
+                field: supplier_id
+
+  - name: stg_orders
+    description: "Cleaned customer orders."
+    columns:
+      - name: order_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: order_number
+        data_tests:
+          - unique
+          - not_null
+
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_customers')
+                field: customer_id
+
+  - name: stg_order_items
+    description: "Cleaned order line items."
+    columns:
+      - name: order_item_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: order_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+
+      - name: product_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_products')
+                field: product_id
+
+      - name: quantity
+        data_tests:
+          - not_null
+
+      - name: unit_price
+        data_tests:
+          - not_null
+
+  - name: stg_inventory
+    description: "Cleaned inventory by product and warehouse."
+    columns:
+      - name: inventory_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: product_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_products')
+                field: product_id
+
+      - name: warehouse_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_warehouses')
+                field: warehouse_id
+
+      - name: quantity_available
+        data_tests:
+          - not_null
