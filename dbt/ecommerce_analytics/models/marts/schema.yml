@@ -1,0 +1,83 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: "Customer dimension table."
+
+    columns:
+      - name: customer_key
+        data_tests:
+          - unique
+          - not_null
+
+      - name: customer_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: dim_products
+    description: "Product dimension table."
+
+    columns:
+      - name: product_key
+        data_tests:
+          - unique
+          - not_null
+
+      - name: product_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: dim_warehouses
+    description: "Warehouse dimension table."
+
+    columns:
+      - name: warehouse_key
+        data_tests:
+          - unique
+          - not_null
+
+      - name: warehouse_id
+        data_tests:
+          - unique
+          - not_null
+
+  - name: fct_orders
+    description: "One row per customer order."
+
+    columns:
+      - name: order_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: customer_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_id
+
+  - name: fct_inventory
+    description: "One row per product and warehouse inventory record."
+
+    columns:
+      - name: inventory_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: product_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_products')
+              field: product_id
+
+      - name: warehouse_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_warehouses')
+              field: warehouse_id

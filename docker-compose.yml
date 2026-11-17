@@ -1,9 +1,49 @@
 
+x-airflow-common: &airflow-common
+  image: ecommerce-airflow:3.4.0
+
+  env_file:
+    - .env
+
+  environment:
+    # Airflow metadata database
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: "postgresql+psycopg://airflow:${AIRFLOW_DB_PASSWORD}@airflow-db:5432/${AIRFLOW_DB_NAME}"
+
+    # Airflow configuration
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__FERNET_KEY: "${AIRFLOW_FERNET_KEY}"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__API__SECRET_KEY: "${AIRFLOW_API_SECRET_KEY}"
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET}
+    AIRFLOW__API__BASE_URL: "http://localhost:8080"
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: "http://airflow-apiserver:8080/execution/"
+
+    # Project configuration
+    PYTHONPATH: /opt/airflow/project
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: "5432"
+    DBT_PROFILES_DIR: /opt/airflow/project/airflow/dbt_profiles
+
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: "true"
+
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/logs:/opt/airflow/logs
+    - ./airflow/plugins:/opt/airflow/plugins
+
+    - ./ingestion:/opt/airflow/project/ingestion
+    - ./data:/opt/airflow/project/data
+    - ./dbt:/opt/airflow/project/dbt
+    - ./airflow/dbt_profiles:/opt/airflow/project/airflow/dbt_profiles
+
+  user: "${AIRFLOW_UID:-50000}:0"
+
 services:
+
+  # Existing operational database - KEEP IT
   postgres:
     image: postgres:16
     container_name: ecommerce_postgres
-
     restart: unless-stopped
 
     environment:
@@ -12,7 +52,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -27,6 +67,97 @@ services:
       retries: 5
       start_period: 10s
 
+  # Separate database for Airflow metadata
+  airflow-db:
+    image: postgres:16
+    container_name: ecommerce_airflow_db
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${AIRFLOW_DB_NAME}
+      POSTGRES_USER: ${AIRFLOW_DB_USER}
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD}
+
+    volumes:
+      - airflow_metadata:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Initialize Airflow metadata database
+  airflow-init:
+    <<: *airflow-common
+
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+
+    container_name: ecommerce_airflow_init
+    command: db migrate
+    restart: "no"
+
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+
+  # Airflow API server and UI
+  airflow-apiserver:
+    <<: *airflow-common
+
+    container_name: ecommerce_airflow_apiserver
+    command: api-server
+
+    ports:
+      - "8080:8080"
+
+    restart: unless-stopped
+
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  # Scheduler - executes LocalExecutor tasks
+  airflow-scheduler:
+    <<: *airflow-common
+
+    container_name: ecommerce_airflow_scheduler
+    command: scheduler
+    restart: unless-stopped
+
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  # Parses DAG files
+  airflow-dag-processor:
+    <<: *airflow-common
+
+    container_name: ecommerce_airflow_dag_processor
+    command: dag-processor
+    restart: unless-stopped
+
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  # Handles deferrable tasks and triggers
+  airflow-triggerer:
+    <<: *airflow-common
+
+    container_name: ecommerce_airflow_triggerer
+    command: triggerer
+    restart: unless-stopped
+
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
 volumes:
   postgres_data:
-
+  airflow_metadata:

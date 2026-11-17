@@ -173,10 +173,10 @@ def load_all_tables():
         raise
 
     finally:
-        if cursor:
+        if cursor is not None:
             cursor.close()
 
-        if connection:
+        if connection is not None:
             connection.close()
             logger.info("Snowflake connection closed")
 
