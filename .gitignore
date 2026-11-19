@@ -1,16 +1,38 @@
-@'
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+
+# Environments
 .venv/
 venv/
+ENV/
+env/
 
 # Environment variables and secrets
 .env
 .env.*
 !.env.example
 
-# Data files
+# Data files (raw extracts and generated data)
 data/raw/*
 !data/raw/.gitkeep
 data/generated/*
@@ -20,15 +42,26 @@ data/generated/*
 dbt/target/
 dbt/logs/
 dbt/dbt_packages/
+dbt/**/target/
+dbt/**/logs/
+dbt/**/dbt_packages/
+logs/
+*.log
+**/.user.yml
+partial_parse.msgpack
 
 # Airflow
 airflow/logs/
+airflow/dags/__pycache__/
+airflow/plugins/__pycache__/
 
-# IDE
+# IDE & Editor
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# OS
+# Operating System
 .DS_Store
 Thumbs.db
-'@ | Set-Content -Encoding utf8 .gitignore
+desktop.ini
